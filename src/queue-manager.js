@@ -48,6 +48,11 @@ class QueueManager {
       // playback API the same way as regular tracks.
       .filter((t) => t && t.id && t.type !== "episode");
 
+    console.log(
+      `[QueueManager] playlist ${playlistId}: ${items.length} item(s) from Spotify, ` +
+      `${tracks.length} playable track(s) after filtering`
+    );
+
     // 2. Fetch audio features (best-effort).
     //    The /audio-features endpoint was deprecated by Spotify in November 2024.
     //    Apps without extended quota mode receive a 403, so we degrade gracefully
@@ -83,7 +88,13 @@ class QueueManager {
 
     // 5. Pick the best first track and start playback
     const first = this._pickNext();
-    if (!first) throw new Error("No tracks available in the playlist.");
+    if (!first) {
+      throw new Error(
+        `No playable tracks found in the playlist (${items.length} item(s) fetched, ` +
+        `${tracks.length} track(s) after filtering). ` +
+        `Check the server log for details.`
+      );
+    }
 
     await this.spotify.startPlayback({ uris: [first.track.uri] });
     this.played.add(first.track.id);

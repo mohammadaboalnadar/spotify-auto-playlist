@@ -130,25 +130,27 @@ class SpotifyClient {
   /**
    * GET /playlists/{playlist_id}/items  (non-deprecated endpoint)
    * Pages through all items automatically.
+   *
+   * We intentionally omit the `fields` query parameter so that Spotify always
+   * returns the complete PlaylistTrackObject (including `track.id`, `track.type`,
+   * `track.uri`, etc.). Using a restrictive `fields` filter can cause Spotify to
+   * return unexpected null/missing values for some tracks, resulting in an empty
+   * candidate pool.
    */
   async getPlaylistItems(playlistId) {
     const items = [];
     let url = `/playlists/${playlistId}/items`;
-    // Include `type` so callers can distinguish tracks from podcast episodes
-    const FIELDS = "items(track(id,name,uri,artists,album,duration_ms,type)),next";
-    let query = { limit: "100", fields: FIELDS };
+    let query = { limit: "100" };
 
     while (url) {
       const data = await this.request(url, { query });
       if (data?.items) items.push(...data.items);
 
       if (data?.next) {
-        // next is an absolute URL – extract path + query.
-        // Spotify does not echo the `fields` param in the next URL, so
-        // we re-apply it manually to keep every page consistently filtered.
+        // next is an absolute URL – extract path + query
         const parsed = new URL(data.next);
         url = parsed.pathname.replace("/v1", "");
-        query = { ...Object.fromEntries(parsed.searchParams), fields: FIELDS };
+        query = Object.fromEntries(parsed.searchParams);
       } else {
         url = null;
       }
