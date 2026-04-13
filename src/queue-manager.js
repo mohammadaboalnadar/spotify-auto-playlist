@@ -43,11 +43,22 @@ class QueueManager {
     const items = await this.spotify.getPlaylistItems(playlistId);
     const tracks = items
       .map((i) => i.track)
-      .filter((t) => t && t.id);
+      // Exclude null tracks (removed/unavailable), local files (no id), and
+      // podcast episodes (type === "episode") which cannot be played via the
+      // playback API the same way as regular tracks.
+      .filter((t) => t && t.id && t.type !== "episode");
 
-    // 2. Fetch audio features
+    // 2. Fetch audio features (best-effort).
+    //    The /audio-features endpoint was deprecated by Spotify in November 2024.
+    //    Apps without extended quota mode receive a 403, so we degrade gracefully
+    //    and fall back to default scores rather than aborting the session.
     const ids = tracks.map((t) => t.id);
-    const features = await this.spotify.getAudioFeaturesBatch(ids);
+    let features = [];
+    try {
+      features = await this.spotify.getAudioFeaturesBatch(ids);
+    } catch (err) {
+      console.warn("Audio features unavailable, scoring will use defaults:", err.message);
+    }
     this.db.upsertFeatures(features);
     const featMap = new Map(features.filter(Boolean).map((f) => [f.id, f]));
 

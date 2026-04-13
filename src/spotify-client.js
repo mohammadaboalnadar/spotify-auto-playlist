@@ -134,17 +134,21 @@ class SpotifyClient {
   async getPlaylistItems(playlistId) {
     const items = [];
     let url = `/playlists/${playlistId}/items`;
-    let query = { limit: "100", fields: "items(track(id,name,uri,artists,album,duration_ms)),next" };
+    // Include `type` so callers can distinguish tracks from podcast episodes
+    const FIELDS = "items(track(id,name,uri,artists,album,duration_ms,type)),next";
+    let query = { limit: "100", fields: FIELDS };
 
     while (url) {
       const data = await this.request(url, { query });
       if (data?.items) items.push(...data.items);
 
       if (data?.next) {
-        // next is an absolute URL – extract path + query
+        // next is an absolute URL – extract path + query.
+        // Spotify does not echo the `fields` param in the next URL, so
+        // we re-apply it manually to keep every page consistently filtered.
         const parsed = new URL(data.next);
         url = parsed.pathname.replace("/v1", "");
-        query = Object.fromEntries(parsed.searchParams);
+        query = { ...Object.fromEntries(parsed.searchParams), fields: FIELDS };
       } else {
         url = null;
       }
