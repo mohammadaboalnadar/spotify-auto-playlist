@@ -1,6 +1,6 @@
 "use strict";
 
-const Database = require("better-sqlite3");
+const { DatabaseSync } = require("node:sqlite");
 const path = require("node:path");
 const fs = require("node:fs");
 
@@ -8,6 +8,10 @@ const DEFAULT_DB_DIR = path.join(__dirname, "..", "data");
 
 /**
  * Persistent SQLite store for user listening behaviour.
+ *
+ * Uses the built-in `node:sqlite` module (Node.js ≥ 22.5) so that no
+ * native compilation is required — the package installs on every platform
+ * without needing Visual Studio, Xcode, or build-essential.
  *
  * Tables:
  *  - track_features: audio features keyed by track id
@@ -21,8 +25,8 @@ class BehaviorDatabase {
   constructor(userId, dbDir = DEFAULT_DB_DIR) {
     fs.mkdirSync(dbDir, { recursive: true });
     const dbPath = path.join(dbDir, `${userId}.sqlite`);
-    this.db = new Database(dbPath);
-    this.db.pragma("journal_mode = WAL");
+    this.db = new DatabaseSync(dbPath);
+    this.db.exec("PRAGMA journal_mode = WAL");
     this._migrate();
   }
 
@@ -70,8 +74,9 @@ class BehaviorDatabase {
         (@id, @danceability, @energy, @loudness, @speechiness,
          @acousticness, @instrumentalness, @liveness, @valence, @tempo)
     `);
-    const tx = this.db.transaction((list) => {
-      for (const f of list) {
+    this.db.exec("BEGIN");
+    try {
+      for (const f of featuresList) {
         if (!f) continue;
         stmt.run({
           id: f.id,
@@ -86,8 +91,11 @@ class BehaviorDatabase {
           tempo: f.tempo ?? 0,
         });
       }
-    });
-    tx(featuresList);
+      this.db.exec("COMMIT");
+    } catch (e) {
+      this.db.exec("ROLLBACK");
+      throw e;
+    }
   }
 
   /**
