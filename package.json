@@ -4,7 +4,7 @@
   "description": "Dynamic shuffle queue for Spotify that learns your listening behavior to minimize skips",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node --env-file-if-exists=.env src/server.js",
     "test": "node --no-warnings=ExperimentalWarning --test 'tests/*.test.js'"
   },
   "keywords": ["spotify", "playlist", "shuffle", "queue", "skip-prediction"],

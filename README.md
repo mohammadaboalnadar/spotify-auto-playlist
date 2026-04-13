@@ -15,7 +15,7 @@ A dynamic shuffle queue for Spotify that learns your listening behaviour to mini
 
 | Requirement | Notes |
 |---|---|
-| [Node.js](https://nodejs.org/) ≥ 22.5 | Uses the built-in `node:sqlite` module — no native compilation required |
+| [Node.js](https://nodejs.org/) ≥ 22.9 | Uses the built-in `node:sqlite` module and `--env-file-if-exists` — no native compilation required |
 | A **Spotify Premium** account | Playback control requires Premium |
 | A registered [Spotify App](https://developer.spotify.com/dashboard) | Set the redirect URI to `http://127.0.0.1:3000/callback` |
 
