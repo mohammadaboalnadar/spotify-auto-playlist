@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spotify Auto-Playlist</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>🎵 Spotify Auto-Playlist</h1>
+      <p class="subtitle">Smart shuffle that learns what you love</p>
+    </header>
+
+    <!-- Login -->
+    <section id="login-section">
+      <button id="login-btn" class="btn btn-primary">Log in with Spotify</button>
+    </section>
+
+    <!-- Main UI (hidden until logged in) -->
+    <section id="main-section" class="hidden">
+      <p id="welcome-msg"></p>
+
+      <div class="input-group">
+        <label for="playlist-input">Playlist URL or ID</label>
+        <input
+          id="playlist-input"
+          type="text"
+          placeholder="https://open.spotify.com/playlist/... or playlist ID"
+        />
+        <button id="start-btn" class="btn btn-primary">Start Smart Shuffle</button>
+        <button id="stop-btn" class="btn btn-danger hidden">Stop</button>
+      </div>
+
+      <div id="now-playing" class="hidden">
+        <h2>Now Playing</h2>
+        <p id="current-track">—</p>
+      </div>
+
+      <div id="queue-section" class="hidden">
+        <h2>Upcoming (lowest skip probability first)</h2>
+        <ol id="queue-list"></ol>
+        <p id="remaining-count"></p>
+      </div>
+
+      <div id="error-box" class="hidden"></div>
+    </section>
+
+    <footer>
+      <p>
+        Content provided by
+        <a href="https://www.spotify.com" target="_blank" rel="noopener">Spotify</a>.
+        This app is not affiliated with Spotify AB.
+      </p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
