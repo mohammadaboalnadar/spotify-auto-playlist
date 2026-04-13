@@ -10,10 +10,19 @@ const crypto = require("node:crypto");
 function generateCodeVerifier(length = 64) {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
-  const bytes = crypto.randomBytes(length);
+  const maxValid = 256 - (256 % chars.length); // rejection threshold
+  const bytes = crypto.randomBytes(length * 2); // over-provision for rejects
   let verifier = "";
-  for (let i = 0; i < length; i++) {
-    verifier += chars[bytes[i] % chars.length];
+  let i = 0;
+  while (verifier.length < length) {
+    if (i >= bytes.length) {
+      // Very unlikely: refill the buffer
+      throw new Error("Insufficient random bytes for code verifier");
+    }
+    if (bytes[i] < maxValid) {
+      verifier += chars[bytes[i] % chars.length];
+    }
+    i++;
   }
   return verifier;
 }

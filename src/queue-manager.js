@@ -29,6 +29,7 @@ class QueueManager {
     this.sessionId = crypto.randomUUID();
     this._pollTimer = null;
     this._lastTrackId = null;
+    this._lastTrackDurationMs = 0;
     this._lastProgressMs = 0;
     this._queuedNext = null;
   }
@@ -76,6 +77,7 @@ class QueueManager {
     await this.spotify.startPlayback({ uris: [first.track.uri] });
     this.played.add(first.track.id);
     this._lastTrackId = first.track.id;
+    this._lastTrackDurationMs = first.track.duration_ms || 0;
 
     // 6. Pre-queue the next track
     await this._enqueueNext();
@@ -136,7 +138,9 @@ class QueueManager {
       this.db.recordInteraction({
         trackId: prevId,
         wasSkipped,
-        listenPct: wasSkipped ? this._lastProgressMs / 1000 / 300 : 1, // rough estimate
+        listenPct: this._lastTrackDurationMs > 0
+          ? Math.min(1, this._lastProgressMs / this._lastTrackDurationMs)
+          : (wasSkipped ? 0.1 : 1),
         sessionId: this.sessionId,
       });
 
@@ -153,6 +157,7 @@ class QueueManager {
 
     this.played.add(newTrackId);
     this._lastTrackId = newTrackId;
+    this._lastTrackDurationMs = 0;
     this._lastProgressMs = 0;
 
     // Queue next track
@@ -170,12 +175,17 @@ class QueueManager {
 
         if (currentId && currentId !== this._lastTrackId) {
           // Track changed — figure out if previous was a skip
+          // Use stored duration of the *previous* track, not the new one
           const wasSkipped =
             this._lastProgressMs > 0 &&
-            this._lastProgressMs < (state.item.duration_ms || 30000) * 0.5;
+            this._lastTrackDurationMs > 0 &&
+            this._lastProgressMs < this._lastTrackDurationMs * 0.5;
           await this._onTrackChange(currentId, wasSkipped);
         } else {
           this._lastProgressMs = progressMs;
+          if (state.item.duration_ms) {
+            this._lastTrackDurationMs = state.item.duration_ms;
+          }
         }
       } catch {
         // Polling errors are non-fatal; will retry next interval

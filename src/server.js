@@ -59,10 +59,34 @@ function getSession(req) {
 /* ── Auth routes ── */
 
 /**
+ * Simple in-memory rate limiter for auth endpoints.
+ * Limits each IP to `maxRequests` per `windowMs`.
+ */
+function rateLimit({ windowMs = 60_000, maxRequests = 10 } = {}) {
+  const hits = new Map();
+  return (req, res, next) => {
+    const ip = req.ip || req.socket.remoteAddress;
+    const now = Date.now();
+    let record = hits.get(ip);
+    if (!record || now - record.start > windowMs) {
+      record = { start: now, count: 0 };
+      hits.set(ip, record);
+    }
+    record.count++;
+    if (record.count > maxRequests) {
+      return res.status(429).json({ error: "Too many requests. Please try again later." });
+    }
+    next();
+  };
+}
+
+const authLimiter = rateLimit({ windowMs: 60_000, maxRequests: 10 });
+
+/**
  * GET /auth/login
  * Generates PKCE params, stores them, and returns the Spotify auth URL.
  */
-app.get("/auth/login", (_req, res) => {
+app.get("/auth/login", authLimiter, (_req, res) => {
   const state = crypto.randomUUID();
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = generateCodeChallenge(codeVerifier);
@@ -85,11 +109,11 @@ app.get("/auth/login", (_req, res) => {
  * GET /callback?code=...&state=...
  * Exchanges the authorization code for tokens and creates a session.
  */
-app.get("/callback", async (req, res) => {
+app.get("/callback", authLimiter, async (req, res) => {
   const { code, state, error } = req.query;
 
   if (error) {
-    return res.status(400).send(`Authorization error: ${error}`);
+    return res.status(400).send(`Authorization error: ${error.replace(/[<>&"']/g, "")}`);
   }
 
   const pkce = sessions.get(`pkce:${state}`);
