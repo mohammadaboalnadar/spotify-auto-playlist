@@ -1,0 +1,16 @@
+{
+  "name": "spotify-auto-playlist",
+  "version": "1.0.0",
+  "description": "Dynamic shuffle queue for Spotify that learns your listening behavior to minimize skips",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test 'tests/*.test.js'"
+  },
+  "keywords": ["spotify", "playlist", "shuffle", "queue", "skip-prediction"],
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "express": "^4.21.2"
+  }
+}
